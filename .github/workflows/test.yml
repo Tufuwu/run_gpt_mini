@@ -1,33 +1,29 @@
-name: Python CI
+name: CI
 
 on: [push, pull_request]
 
 jobs:
-  build:
-    runs-on: ubuntu-22.04
-    strategy:
-      matrix:
-        python-version: [3.8, 3.8, 3.8, 3.9]
-
+  test:
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: '3.8'
 
       - name: Install dependencies
         run: |
-          pip install .[test] codecov
+          pip install -r requirements-dev.txt
+          pip install -e .
 
       - name: Run tests
-        run: ./run-tests.py
+        run: pytest pywnedpasswords/tests/
 
-      - name: Upload coverage to Codecov
-        run: bash <(curl -s https://codecov.io/bash) 
+      - name: Run flake8
+        run: flake8 pywnedpasswords
 
-      - name: Clean pip cache
-        run: rm -f $HOME/.cache/pip/log/debug.log
-
+      - name: Run black
+        run: black --safe --check
