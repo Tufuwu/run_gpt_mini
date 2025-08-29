@@ -1,25 +1,43 @@
-name: Python CI
+name: Python package
 
 on: [push, pull_request]
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
+    services:
+      mongodb:
+        image: mongo:latest
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongo --eval 'db.runCommand({ ping: 1 })'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     strategy:
       matrix:
-        python-version: [3.8, 3.8, 3.8, 3.8, 3.8]
+        python-version: [3.8, 3.8, 3.9, pypy-3.6]
+        django-version: ["Django>=2.2,<2.3", "Django>=3.0,<3.2", "Django>=3.2,<3.3"]
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Install Poetry
+        run: pip install poetry
+
       - name: Install dependencies
-        run: make deps
+        run: |
+          poetry install -q
+          poetry run pip install -q ${{ matrix.django-version }}
 
       - name: Run tests
-        run: make test
+        run: poetry run python -m pytest
+
