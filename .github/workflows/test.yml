@@ -2,51 +2,59 @@ name: Python Package
 
 on:
   push:
-    tags:
-      - '*'
-  pull_request:
+    branches:
+      - main
+    tags: true
 
 jobs:
   build:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        python-version: [3.8, 3.8, 3.8, 3.8]
-    
+        python-version: [3.8, 3.8, 3.8, 3.8, 3.8, 3.8]
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
 
-    - name: Install dependencies
-      run: |
-        if [[ "${{ matrix.python-version }}" == "3.8" ]]; then
-          export IPYTHON_VERSION='7.9'
-          export PANDAS_VERSION='0.24.2'
-        else
-          export IPYTHON_VERSION='7'
-          export PANDAS_VERSION='1'
-        fi
-        pip install IPython==$IPYTHON_VERSION
-        pip install pandas==$PANDAS_VERSION
-        pip install .[test]
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install setuptools wheel
 
-    - name: Run tests
-      run: |
-        python -c 'import pytorch_memlab'
-        pytest test/test_mem_reporter.py
+      - name: Run tests
+        run: python setup.py test
 
-    - name: Deploy to PyPI
-      if: github.ref == 'refs/tags' && matrix.python-version == '3.8'
-      env:
-        TWINE_USERNAME: yoursky
-        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-      run: |
-        pip install twine
-        twine upload dist/*
-        
+  deploy:
+    runs-on: ubuntu-22.04
+    needs: build
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python for deployment
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'  # Use a stable version for deployment
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install setuptools wheel twine
+
+      - name: Build and deploy to PyPI
+        env:
+          TWINE_USERNAME: phillbaker
+          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+        run: |
+          python setup.py sdist bdist_wheel
+          twine upload dist/*
+          
 # Note: You need to set the PYPI_PASSWORD secret in your GitHub repository settings.
+
