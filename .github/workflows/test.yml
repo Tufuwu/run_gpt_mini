@@ -1,53 +1,27 @@
-name: Python CI
+name: Link Format Check
 
-on:
-  push:
-    branches:
-      - main
-      - dev
+on: [push, pull_request]
 
 jobs:
-  build:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        python-version: [3.8, 3.8, 3.8, pypy-3.6]
-        test-suite: [
-          "adddelete",
-          "compartmentedmodel",
-          "networkdynamics",
-          "sir",
-          "sirs",
-          "sir_fixedrecovery",
-          "sis",
-          "sis_fixedrecovery",
-          "seir",
-          "stochasticrates",
-          "monitor",
-          "generators",
-          "loci",
-          "percolate"
-        ]
+  link-format-check:
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Install dependencies
+      - name: Run link format check
         run: |
-          pip install -r requirements.txt
-          pip install coveralls
-
-      - name: Run tests
-        run: |
-          python setup.py install
-          coverage run --include './epydemic/*' -m nose test/test_${{ matrix.test-suite }}.py
-
-      - name: Upload coverage to Coveralls
-        if: success()
-        run: coveralls
+          bash scripts/link-format-chk.sh
+          bash scripts/buildtable.pl > /tmp/table.mediawiki || exit 1
+          diff README.mediawiki /tmp/table.mediawiki | grep '^[<>] |' > /tmp/after.diff || true
+          if git checkout HEAD^ && bash scripts/buildtable.pl > /tmp/table.mediawiki 2>/dev/null; then
+            diff README.mediawiki /tmp/table.mediawiki | grep '^[<>] |' > /tmp/before.diff || true
+            newdiff=$(diff -s /tmp/before.diff /tmp/after.diff -u | grep '^+')
+            if [ -n "$newdiff" ]; then
+              echo "$newdiff"
+              exit 1
+            fi
+          else
+            echo 'Cannot build previous commit table for comparison'
+          fi
