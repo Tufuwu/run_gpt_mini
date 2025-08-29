@@ -1,13 +1,14 @@
-name: Python Package
+name: Python CI
 
 on: [push, pull_request]
 
 jobs:
-  test:
+  build:
     runs-on: ubuntu-22.04
+
     strategy:
       matrix:
-        python-version: [3.8, 3.8, 3.8, 3.8]
+        python-version: [3.8, 3.8, 3.8, 3.8, 3.8]
 
     steps:
       - name: Checkout code
@@ -19,10 +20,8 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: |
-          pip install django bs4
+        run: pip install flask peewee
 
       - name: Run tests
-        run: |
-          env PYTHONPATH=`pwd` python setup.py test
-          
+        run: python runtests.py
+
