@@ -1,36 +1,14 @@
-name: Python CI
+name: Python package
 
 on: [push, pull_request]
 
 jobs:
-  test:
+  build:
     runs-on: ubuntu-22.04
+
     strategy:
       matrix:
-        python-version: [3.8, 3.8, 3.8, 3.8, 3.9, 'pypy-3.6']
-        toxenv: 
-          - pre-commit
-          - py38-2.2
-          - py38-2.2
-          - py38-2.2
-          - py38-2.2
-          - pypy-3.6-2.2
-          - py38-3.0
-          - py38-3.0
-          - py38-3.0
-          - pypy-3.6-3.0
-          - py38-3.1
-          - py38-3.1
-          - py38-3.1
-          - pypy-3.6-3.1
-          - py38-3.2
-          - py38-3.2
-          - py38-3.2
-          - py39-3.2
-          - pypy-3.6-3.2
-          - py38-main
-          - py39-main
-          - pypy-3.6-main
+        python-version: [3.8, 3.8, 3.8]
 
     steps:
       - name: Checkout code
@@ -41,18 +19,30 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install dependencies
+      - name: Install Miniconda
         run: |
-          pip install coverage tox
+          if [[ "${{ matrix.python-version }}" == "3.8" ]]; then
+            wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh;
+          else
+            wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
+          fi
+          bash miniconda.sh -b -p $HOME/miniconda
+          echo "$HOME/miniconda/bin" >> $GITHUB_PATH
+
+      - name: Create conda environment
+        run: |
+          conda config --set always_yes yes --set changeps1 no
+          conda update -q conda
+          conda create -q -n test python=${{ matrix.python-version }}
+          source activate test
+          conda install altair matplotlib numba numpy pandas pyteomics pytest -c defaults -c bioconda -c conda-forge
+
+      - name: Install package
+        run: |
+          source activate test
+          python setup.py install
 
       - name: Run tests
         run: |
-          tox -e ${{ matrix.toxenv }}
-
-      - name: Upload coverage to Coveralls
-        if: success()
-        run: coveralls
-
-    # Allow failures for specific jobs
-    continue-on-error: ${{ matrix.toxenv == 'py38-main' || matrix.toxenv == 'py39-main' || matrix.toxenv == 'pypy-3.6-main' }}
-
+          source activate test
+          pytest
