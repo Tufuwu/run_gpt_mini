@@ -1,36 +1,42 @@
-name: Python CI
+name: Python Package
 
-on: [push, pull_request]
+on:
+  push:
+    tags:
+      - '*'
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
-
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.8, 3.8, 3.8, 3.8]
+        python-version: [3.8, 3.8, 3.8]
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+    - name: Checkout code
+      uses: actions/checkout@v2
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python-version }}
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
 
-      - name: Install dependencies
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -qq libhdf5-serial-dev
-          python -m pip install --upgrade pip setuptools wheel virtualenv
-          pip install tox tox-travis codecov
-          # pip install -r requirements_test.txt
+    - name: Install dependencies
+      run: |
+        pip install -r dev-requirements.txt
+        pip install -e .
 
-      - name: Run tests with Tox
-        run: tox
+    - name: Run tests
+      run: pytest --vcr-record=none --cov=tenable tests
 
-      - name: Upload coverage to Codecov
-        if: success()
-        run: bash <(curl -s https://codecov.io/bash) # or use codecov action
+    - name: Publish to PyPI
+      if: startsWith(github.ref, 'refs/tags/')
+      env:
+        TWINE_USERNAME: stevemcgrath
+        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+      run: |
+        pip install twine
+        twine upload dist/* --skip-existing
+
+# Note: You need to set the PYPI_PASSWORD secret in your GitHub repository settings.
 
