@@ -1,67 +1,56 @@
 name: CI
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
+      - dev
+    tags:
+      - '*'
+  pull_request:
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-
+  build:
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        python-version: [3.8, 3.8, 3.8, 3.9]
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Set up Python
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
         with:
-          python-version: '3.8'
+          python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
+        run: pip install ".[build]"
+
+      - name: Run tests
         run: |
-          pip install flake8 Flask==1.1.1
-          pip install -e .
-          flake8 .
+          if [[ "${{ matrix.python-version }}" == "3.8" && "${{ github.ref }}" == "refs/heads/dev" ]]; then
+            tox -e coverage,mypy,style,docs,dist-test
+          else
+            tox
+          fi
 
-      - name: Set FLASK_APP environment variable
-        run: echo "FLASK_APP=example.app" >> $GITHUB_ENV
+      - name: Upload coverage to Coveralls
+        if: success() && contains(github.ref, 'refs/tags/') && matrix.python-version == '3.8'
+        run: coveralls
 
-      - name: Check file count before compiling
+  deploy:
+    runs-on: ubuntu-22.04
+    needs: build
+    if: github.ref == 'refs/tags/' || github.ref == 'refs/heads/dev'
+    steps:
+      - name: Deploy to PyPI
+        if: secrets.PYPI_TOKEN != ''
         run: |
-          cd tests/example_app
-          ls -laR example/static/ | wc -l | grep -q "26" && echo "File count before compiling test: pass" || (echo "File count before compiling test: fail" && exit 1)
-
-      - name: Compile assets
-        run: |
-          cd tests/example_app
-          flask digest compile
-          ls -laR example/static/ | wc -l | grep -q "36" && echo "File count after compiling test: pass" || (echo "File count after compiling test: fail" && exit 1)
-
-      - name: Check cache manifest for nested file
-        run: |
-          cd tests/example_app
-          grep -q "js/modules/hello.js" example/static/cache_manifest.json && echo "Cache manifest has nested file test: pass" || (echo "Cache manifest has nested file test: fail" && exit 1)
-
-      - name: Check cache manifest for digested file
-        run: |
-          cd tests/example_app
-          grep -q "js/modules/hello-d41d8cd98f00b204e9800998ecf8427e.js" example/static/cache_manifest.json && echo "Cache manifest has digested file test: pass" || (echo "Cache manifest has digested file test: fail" && exit 1)
-
-      - name: Run Flask and check stylesheet
-        run: |
-          cd tests/example_app
-          flask run &
-          sleep 5
-          curl http://localhost:5000 | grep -q 'https://cdn.example.com/static/css/app-d41d8cd98f00b204e9800998ecf8427e.css' && echo 'Stylesheet is md5 tagged test: pass' || (echo 'Stylesheet is md5 tagged test: fail' && exit 1)
-
-      - name: Clean assets
-        run: |
-          cd tests/example_app
-          flask digest clean
-          ls -laR example/static/ | wc -l | grep -q "26" && echo "File count after cleaning test: pass" || (echo "File count after cleaning test: fail" && exit 1)
-
-      - name: Run Flask and check JavaScript
-        run: |
-          cd tests/example_app
-          flask run -p 5001 &
-          sleep 5
-          curl http://localhost:5001 | grep -q 'https://cdn.example.com/static/js/app.js' && echo 'Javascript is not md5 tagged test: pass' || (echo 'Javascript is not md5 tagged test: fail' && exit 1)
-
+          pip install twine
+          python setup.py sdist bdist_wheel
+          twine upload dist/* -u __token__ -p ${{ secrets.PYPI_TOKEN }}
+          
+# Note: The deployment step is conditional based on the branch or tag.
+# Stable releases are for tags on the main branch, and pre-releases are for the dev branch.
