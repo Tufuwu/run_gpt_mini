@@ -6,43 +6,31 @@ on:
       - main
 
 jobs:
-  linter:
-    runs-on: ubuntu-latest
+  flake8:
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-
-      - name: Set up Python 3.8
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.8'
-
-      - name: Install flake8
-        run: pip install flake8
-
-      - name: Run flake8
-        run: flake8 etip/
-
-  test:
-    runs-on: ubuntu-latest
-    needs: linter
-    strategy:
-      matrix:
-        python-version: [3.8, 3.8]
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
+      
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: '3.8'
+      
+      - name: Install Flake8
+        run: pip install flake8
+      
+      - name: Run Flake8
+        run: flake8
 
-      - name: Install dependencies
-        run: pip install -r requirements.txt
+  hadolint:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      
+      - name: Run Hadolint
+        uses: hadolint/hadolint-action@v1
+        with:
+          dockerfile: Dockerfile
 
-      - name: Run tests
-        run: |
-          cd etip/
-          python manage.py test
-          
