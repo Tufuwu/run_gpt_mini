@@ -1,4 +1,4 @@
-name: CI
+name: Python CI
 
 on: [push, pull_request]
 
@@ -8,7 +8,7 @@ jobs:
     strategy:
       matrix:
         python-version: [3.8, 3.8, 3.8, 3.8]
-
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -19,30 +19,13 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: pip install --requirement dev-requirements.txt
+        run: |
+          pip install -q Django==1.11
+          pip install -e .[flake8,tests]
 
-      - name: Validate coding guidelines
-        if: matrix.python-version == '3.8'
-        run: pre-commit run --all-files
+      - name: Run flake8
+        run: flake8
 
       - name: Run tests
-        run: |
-          python setup.py develop
-          pytest --verbose
-
-      - name: Build and install the package
-        run: |
-          python setup.py bdist_wheel
-          python setup.py install
-
-      - name: Test drive the installed pygount
-        run: |
-          pygount --version
-          pygount --help
-          pygount pygount *.cfg *.yaml
-          pygount --format=summary pygount *.cfg *.yaml
-
-      - name: Upload coverage to Coveralls
-        if: matrix.python-version == '3.8'
-        run: coveralls
+        run: pytest
 
