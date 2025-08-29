@@ -3,12 +3,11 @@ name: Python CI
 on: [push, pull_request]
 
 jobs:
-  test:
+  build:
     runs-on: ubuntu-latest
-
     strategy:
       matrix:
-        python-version: [3.8]
+        python-version: [3.8, 3.8, 3.8, 3.9]
 
     steps:
       - name: Checkout code
@@ -19,15 +18,17 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Install Poetry
+        run: pip install poetry
+
       - name: Install dependencies
-        run: |
-          pip install tox-travis coveralls
+        run: poetry install -v
 
-      - name: Run tests with Tox
-        run: tox
+      - name: Run flake8 on example/
+        run: poetry run flake8 example/
 
-      - name: Upload coverage to Coveralls
-        run: coveralls
+      - name: Run flake8 on tests/
+        run: poetry run flake8 tests/
 
-    notifications:
-      email: false
+      - name: Run tests
+        run: poetry run pytest
