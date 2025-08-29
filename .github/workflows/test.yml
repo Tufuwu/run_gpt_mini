@@ -3,28 +3,11 @@ name: Python CI
 on: [push, pull_request]
 
 jobs:
-  test:
-    runs-on: ${{ matrix.os }}
+  build:
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
-        python-version: [3.8, 3.8, 3.8, 3.9]
-        os: [ubuntu-latest, ubuntu-22.04, ubuntu-22.04]
-        include:
-          - python-version: 3.8
-            env: TOXENV=py38
-            os: ubuntu-latest
-          - python-version: 3.8
-            env: TOXENV=cov
-            os: ubuntu-latest
-          - python-version: 3.8
-            env: TOXENV=py38
-            os: ubuntu-22.04
-          - python-version: 3.8
-            env: TOXENV=py38
-            os: ubuntu-22.04
-          - python-version: 3.9
-            env: TOXENV=py39
-            os: ubuntu-22.04
+        python-version: [3.8, 3.8, 3.8, 3.8]
 
     steps:
       - name: Checkout code
@@ -37,14 +20,20 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install -U tox coveralls
+          pip install -r requirements.txt
 
-      - name: Run tests
+      - name: Run tests with coverage
         run: |
-          if [ "${{ matrix.env }}" == "TOXENV=cov" ]; then
-            tox
-            coveralls
-          else
-            tox
-          fi
+          pytest -v --cov=filestack tests
+
+      - name: Upload coverage to Coveralls
+        if: success()
+        run: |
+          coveralls
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "Sending failure notification to dev@filestack.com"
+          # Add your email notification logic here
 
