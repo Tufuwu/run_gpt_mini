@@ -1,11 +1,10 @@
-name: CI
+name: Python CI
 
 on: [push, pull_request]
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
-
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: [3.8, 3.8, 3.9]
@@ -21,20 +20,19 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install codecov
-          pip install -r requirements.txt
-          pip install -r test-requirements.txt
+          if [[ "${{ matrix.python-version }}" == "3.8" ]]; then pip install 'setuptools<=60.9.0'; fi
+          python setup.py -q install
+          pip install pylint yapf pytype
 
-      - name: Lint with flake8
-        run: flake8 stockstats.py test.py
+      - name: Run tests
+        run: python setup.py test
 
-      - name: Run tests with coverage
-        run: py.test --cov=./ test.py
+      - name: Run pylint
+        run: pylint comment_parser
 
-      - name: Upload coverage to Codecov
-        run: bash <(curl -s https://codecov.io/bash)
+      - name: Run pytype
+        run: pytype
 
-      - name: Notify via email
-        if: success()
-        run: echo "Build succeeded, sending email to jealous@163.com"
+      - name: Format code with yapf
+        run: yapf -drp comment_parser
 
