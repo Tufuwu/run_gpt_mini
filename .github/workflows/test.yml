@@ -5,9 +5,10 @@ on: [push, pull_request]
 jobs:
   build:
     runs-on: ubuntu-latest
+
     strategy:
       matrix:
-        python-version: [3.8, 3.8, 3.8, 3.9]
+        python-version: [3.8, 3.8, 3.8]
 
     steps:
       - name: Checkout code
@@ -18,17 +19,15 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install Poetry
-        run: pip install poetry
-
       - name: Install dependencies
-        run: poetry install -v
+        run: |
+          pip install -r requirements.txt
+          pip install .
+          pip install flake8
 
-      - name: Run flake8 on example/
-        run: poetry run flake8 example/
-
-      - name: Run flake8 on tests/
-        run: poetry run flake8 tests/
+      - name: Run flake8
+        run: flake8 img2gb test
 
       - name: Run tests
-        run: poetry run pytest
+        run: pytest -v test
+
