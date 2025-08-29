@@ -2,17 +2,17 @@ name: Python Package
 
 on:
   push:
-    tags: true
-    branches:
-      - main
+    tags:
+      - '*'
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
+
     strategy:
       matrix:
-        python-version: [3.8, 3.8, 3.8, 3.9]
-    
+        python-version: [3.8, 3.8]
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -24,20 +24,19 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install .[test]
+          pip install numpy svgwrite scipy
 
       - name: Run tests
-        run: echo hello world
+        run: |
+          python -m unittest discover test
 
-      - name: Deploy to PyPI
-        if: matrix.python-version == '3.8' && github.ref_type == 'tag'
+      - name: Publish to PyPI
+        if: github.ref_type == 'tag'
         env:
-          TWINE_USERNAME: mara-pypi-upload-account
-          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
         run: |
           pip install twine
-          python setup.py sdist
           twine upload dist/*
           
-# Note: You need to set the PYPI_PASSWORD secret in your GitHub repository settings.
-
+# Note: You need to set the PYPI_TOKEN secret in your GitHub repository settings.
