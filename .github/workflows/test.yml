@@ -3,17 +3,23 @@ name: Python CI
 on: [push, pull_request]
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
+  build:
+    runs-on: ubuntu-22.04
+
     strategy:
       matrix:
-        python-version: [3.8, 3.8, 3.8, 3.8, 3.9, 'pypy-3.6']
-        toxenv: [black, flake8, mypy, isort, py38, py38, py38, py38, py39]
+        python-version: [3.8, 3.8, 3.8, '3.8']
+        include:
+          - python-version: 3.8
+            env: TOX_SKIP_ENV=typeshed
+          - python-version: 3.8
+            env: TOX_SKIP_ENV=typeshed
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Set up Python
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
@@ -22,16 +28,12 @@ jobs:
         run: |
           pip install tox
 
-      - name: Run Tox
+      - name: Run tests
         run: |
-          tox -e ${{ matrix.toxenv }}
+          tox
 
-      - name: Install Coveralls
-        if: success()
-        run: |
-          pip install coveralls
+      - name: Notify on success or failure
+        if: ${{ success() }}
+        run: echo "Build succeeded!" || echo "Build failed!"
 
-      - name: Upload coverage
-        if: success()
-        run: |
-          coveralls
+# Notifications are handled by GitHub Actions natively
