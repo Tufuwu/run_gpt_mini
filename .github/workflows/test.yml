@@ -1,39 +1,15 @@
-name: Python Package
+name: Python CI
 
-on:
-  push:
-    tags:
-      - '*'
+on: [push, pull_request]
 
 jobs:
   build:
     runs-on: ubuntu-22.04
+
     strategy:
       matrix:
-        python-version: [3.8, 3.8, 3.8]
+        python-version: [3.9, 3.8, 3.8, 3.8, pypy-3.6]
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Install dependencies
-        run: |
-          pip install -e .
-          pip install astroid>=2.0
-          pip install pylint>=2.0
-
-      - name: Run pylint
-        run: pylint --rcfile=.pylintrc infinisdk setup.py
-
-  deploy:
-    runs-on: ubuntu-22.04
-    needs: build
-    if: startsWith(github.ref, 'refs/tags/')
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -41,11 +17,13 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: 3.8
+          python-version: ${{ matrix.python-version }}
 
-      - name: Build and upload package
+      - name: Install dependencies
         run: |
-          python setup.py sdist bdist_wheel
-          pip install twine
-          twine upload -u ${{ secrets.PYPI_USERNAME }} -p ${{ secrets.PYPI_PASSWORD }} dist/*
+          pip wheel -r requirements.txt
+          pip install -r requirements.txt
+
+      - name: Run tests
+        run: python setup.py test
 
