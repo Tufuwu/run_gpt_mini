@@ -5,11 +5,10 @@ on: [push, pull_request]
 jobs:
   build:
     runs-on: ubuntu-latest
-
     strategy:
       matrix:
-        python-version: [3.8, 3.8, 3.8, 3.8, 3.8, pypy-3.6]
-
+        python-version: [3.8, 3.8, 3.8, 3.8, pypy-3.6]
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -21,22 +20,13 @@ jobs:
 
       - name: Install dependencies
         run: |
+          pip install -r test-requirements.txt
           pip install -e .
-          pip install requests pytest-cov coveralls
-
-      - name: Start Docker services
-        run: |
-          docker-compose -f tests/config/docker-compose.yml up -d
-          sleep 120
-          ./tests/config/bootstrap
 
       - name: Run tests
-        run: |
-          py.test -v --cov=pygelf
-
-      - name: Stop Docker services
-        run: docker-compose -f tests/config/docker-compose.yml down
+        run: nosetests -q --with-coverage --cover-package=pycron
 
       - name: Upload coverage to Coveralls
         if: success()
         run: coveralls
+
