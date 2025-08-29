@@ -1,45 +1,36 @@
-name: Python CI
+name: Python package
 
 on: [push, pull_request]
 
 jobs:
-  test:
-    runs-on: ubuntu-22.04
+  build:
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.8, 3.8, 3.8, 3.9, pypy-3.6]
-    
+        python-version: [3.8, 3.8, 3.8, 3.9]
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+    - name: Checkout code
+      uses: actions/checkout@v2
 
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python-version }}
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
 
-      - name: Install dependencies
-        run: |
-          pip install -U -r requirements-dev.txt
-          pip install .
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
 
-      - name: Run tests
-        run: |
-          if [[ "${{ matrix.python-version }}" == "pypy-3.6" ]]; then
-            TOX_ENV=pypy-3.6
-          else
-            TOX_ENV=py${{ matrix.python-version }} 
-          fi
-          tox -e $TOX_ENV
-          pytest --dead-fixtures
+    - name: Run tests
+      run: |
+        if [ $(python -c "import sys; print(sys.version_info.minor)") -lt 7 ]; then
+            nosetests
+        else
+            nosetests --with-coverage --cover-package=discogs_client
+        fi
 
-      - name: Cache pip
-        uses: actions/cache@v2
-        with:
-          path: $HOME/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements-dev.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-          
-      - name: Clean pip cache logs
-        run: rm -rf $HOME/.cache/pip/log
+    - name: Upload coverage to Coveralls
+      if: success()
+      run: coveralls
