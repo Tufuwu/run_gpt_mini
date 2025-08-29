@@ -1,13 +1,13 @@
-name: Python CI
+name: CI
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
-    strategy:
-      matrix:
-        python-version: [3.8, 3.8, 3.8, 3.8]
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
@@ -16,23 +16,13 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: '3.8'
 
       - name: Install dependencies
         run: |
-          pip install pyflakes pytest pytest-doctestplus
+          pip install sphinx${{ secrets.SPHINX_VERSION != '' && format('=={0}', secrets.SPHINX_VERSION) || '' }}
+          pip install -r requirements-travis.txt
 
-      - name: Run pyflakes
-        run: |
-          set -e
-          pyflakes .
+      - name: Run inspekt
+        run: inspekt checkall --disable-style E501,E265,W601,W605,E402,E722,E741 --no-license-check
 
-      - name: Compile all files
-        run: |
-          python -We:invalid -We::SyntaxWarning -m compileall -f -q removestar/
-
-      - name: Run tests
-        run: pytest
-
-      - name: Install package
-        run: python setup.py install
