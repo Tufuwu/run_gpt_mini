@@ -1,49 +1,36 @@
 name: Python CI
 
-on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+on: [push, pull_request]
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
 
     strategy:
       matrix:
-        python-version: [3.8, 3.8]
+        python-version: [3.8, 3.8, 3.9, 3.10, 3.11]
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+    - name: Checkout code
+      uses: actions/checkout@v2
 
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python-version }}
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
 
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y git build-essential automake libtool python-dev gettext swig
-          pip install flake8
+    - name: Install dependencies
+      run: |
+        pip install tox-travis
 
-      - name: Check flake8 version
-        run: flake8 --version
+    - name: Run tests
+      run: tox
 
-      - name: Compile AutoBouquetsMaker enigma2 plugin
-        run: |
-          echo compiling AutoBouquetsMaker enigma2 plugin
-          python -m compileall .
-          find . -type f -name "*.po" -exec msgfmt {} -o {}.mo \;
-          flake8 --ignore=W191,E128,E501,E722 . --exit-zero
-          echo done.
+    - name: Notify Slack
+      if: always()
+      uses: slackapi/slack-github-action@v1.19.0
+      with:
+        payload: '{"text": "Build completed for Python ${{ matrix.python-version }}"}'
+        channel: '#your-channel'
+        slack-token: ${{ secrets.SLACK_TOKEN }}
 
-# PEP8 :- IGNORE CODES
-# W191 : indentation contains tabs
-# E128 : continuation line under-indented for visual indent
-# E501 : line too long (> 79 characters)
-# E722 : do not use bare 'except'
