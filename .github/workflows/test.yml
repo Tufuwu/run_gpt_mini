@@ -1,4 +1,4 @@
-name: CI
+name: Python CI
 
 on: [push, pull_request]
 
@@ -8,26 +8,29 @@ jobs:
 
     strategy:
       matrix:
-        python-version: [3.8, 3.8, 3.8]
+        python-version: [3.8, 3.8, 3.8, 3.8]
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Set up Python
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install Node.js and JSHint
+      - name: Install dependencies
         run: |
-          curl -sL https://deb.nodesource.com/setup_14.x | sudo -E bash -
-          sudo apt-get install -y nodejs
-          npm install -g jshint
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+          pip install -e .
 
-      - name: Install Python dependencies
-        run: pip install -r requirements.txt
+      - name: Run flake8
+        run: flake8
 
-      - name: Run make
-        run: make
+      - name: Run tests with coverage
+        run: pytest --cov
+
+      - name: Upload coverage to Coveralls
+        run: coveralls
 
