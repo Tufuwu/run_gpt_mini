@@ -1,97 +1,34 @@
-name: Python CI
+name: Python package
 
 on: [push, pull_request]
 
 jobs:
-  test:
+  build:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: [3.8, 3.8, 3.8, 3.8]
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python-version }}
+      - name: Set up Miniconda
+        run: |
+          wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O $HOME/miniconda.sh
+          bash $HOME/miniconda.sh -b -u -p $HOME/miniconda
+          echo "$HOME/miniconda/bin" >> $GITHUB_PATH
 
       - name: Install dependencies
         run: |
-          pip install tox-travis
-          pip install coveralls
-
-      - name: Run tests
-        run: tox
-
-      - name: Upload coverage
-        if: success() && steps.run_tests.outputs.coverage-file == '.coverage'
-        run: coveralls
-
-  flake8:
-    runs-on: ubuntu-latest
-    needs: test
-    if: matrix.python-version == '3.8'
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Set up Python 3.8
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.8
-
-      - name: Install dependencies
-        run: |
-          pip install tox-travis
-          pip install coveralls
+          pip install nose coverage coveralls flake8 scikit-image
+          pip install -e .
 
       - name: Run flake8
-        run: tox -e flake8
-
-  isort:
-    runs-on: ubuntu-latest
-    needs: test
-    if: matrix.python-version == '3.8'
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Set up Python 3.8
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.8
-
-      - name: Install dependencies
-        run: |
-          pip install tox-travis
-          pip install coveralls
-
-      - name: Run isort
-        run: tox -e isort
-
-  test-py38:
-    runs-on: ubuntu-latest
-    if: matrix.python-version == '3.8'
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Set up Python 3.8
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.8
-
-      - name: Install dependencies
-        run: |
-          pip install tox-travis
-          pip install coveralls
+        run: flake8
 
       - name: Run tests
-        run: tox
+        run: nosetests -sv --with-doctest --no-byte-compile --with-coverage --cover-package=tftb
 
-      - name: Upload coverage
-        if: success() && steps.run_tests.outputs.coverage-file == '.coverage'
+      - name: Upload coverage to Coveralls
         run: coveralls
+        env:
+          COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
+        
