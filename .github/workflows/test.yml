@@ -1,14 +1,15 @@
-name: Python CI
+name: CI
 
 on: [push, pull_request]
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
+
     strategy:
       matrix:
-        python-version: [3.8, 3.8, 3.8]
-    
+        python-version: [3.8, 3.8, 3.8, 3.9]
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -18,25 +19,24 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install Node.js and Elm
-        run: |
-          curl -sL https://deb.nodesource.com/setup_14.x | sudo -E bash -
-          sudo apt-get install -y nodejs
-          npm install -g elm
-
       - name: Install dependencies
-        run: pip install tox-travis
-
-      - name: Run tests
         run: |
-          if [[ "${{ matrix.python-version }}" == "3.8" ]]; then
-            tox -e cover
-            tox -e black
-          else
-            tox
-          fi
+          pip install tox-travis
+          pip install coveralls
+          pip install -r requirements/testing.txt
+
+      - name: Run flake8
+        run: flake8
+
+      - name: Run tests with Tox
+        run: tox
 
       - name: Upload coverage to Coveralls
-        if: success() && matrix.python-version == '3.8'
         run: coveralls
+
+      - name: Notify on success or failure
+        if: ${{ always() }}
+        run: echo "Build completed"
+        
+# You can set up email notifications through GitHub settings or use a third-party service.
 
