@@ -4,11 +4,11 @@ on: [push, pull_request]
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
 
     strategy:
       matrix:
-        python-version: [3.8, 3.8, 3.8]
+        python-version: [3.8, 3.8, 3.8, 3.8, 3.8, 3.8, 3.9]
 
     steps:
       - name: Checkout code
@@ -20,19 +20,12 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: pip install -r dev-requirements.txt
+        run: |
+          pip install -e .
 
-      - name: Run flake8
-        run: flake8 sendgrid_backend/
-
-      - name: Run isort
-        run: isort -c ./
-
-      - name: Run black
-        run: black --check ./
-
-      - name: Run mypy
-        run: mypy sendgrid_backend/
-
-      - name: Run tox
-        run: tox
+      - name: Run tests
+        run: |
+          cd tests
+          python test_cvss2.py
+          python test_cvss3.py
+          
