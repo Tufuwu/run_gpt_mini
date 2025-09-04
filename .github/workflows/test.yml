@@ -1,14 +1,17 @@
-name: Python CI
+name: CI
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
 
 jobs:
   build:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.8, 3.8, 3.8, 3.8, 3.9]
-
+        python-version: [3.8, 3.8, 3.8, 3.9]
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -20,21 +23,74 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install -r requirements.txt
-          python setup.py install
-          pip install coveralls
+          pip install tox-travis
+          pip install codecov
 
-      - name: Run tests with coverage
-        run: coverage run --source=nvd3 setup.py test
+      - name: Run tests
+        run: tox
 
-      - name: Upload coverage to Coveralls
-        run: coveralls
+      - name: Upload coverage to Codecov
+        if: success() && github.ref == 'refs/heads/main'
+        run: codecov
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
-      - name: Notify on success
-        if: success()
-        run: echo "Tests passed, notifications sent."
+  lint:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-      - name: Notify on failure
-        if: failure()
-        run: echo "Tests failed, notifications sent."
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
 
+      - name: Install dependencies
+        run: |
+          pip install tox-travis
+          pip install codecov
+
+      - name: Run lint
+        run: tox -e lint
+
+  docs:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Install dependencies
+        run: |
+          pip install tox-travis
+          pip install codecov
+
+      - name: Build docs
+        run: tox -e docs
+
+  isort:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Install dependencies
+        run: |
+          pip install tox-travis
+          pip install codecov
+
+      - name: Run isort
+        run: tox -e isort
