@@ -3,36 +3,45 @@ name: Python CI
 on: [push, pull_request]
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.8, 3.8, 3.9]
-
+        python-version: [3.8, 3.8, 3.8, 3.8, '3.8']
+        toxenv: [py38, py38, py38, py38, py38]
+        flake8: [flake8]
+        isort: [isort]
+        black: [black]
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
         run: |
-          if [[ "${{ matrix.python-version }}" == "3.8" ]]; then pip install 'setuptools<=60.9.0'; fi
-          python setup.py -q install
-          pip install pylint yapf pytype
+          pip install tox
 
-      - name: Run tests
-        run: python setup.py test
+      - name: Run Tox
+        run: |
+          tox -e ${{ matrix.toxenv }}
 
-      - name: Run pylint
-        run: pylint comment_parser
+      - name: Run Flake8
+        if: matrix.toxenv == 'flake8'
+        run: |
+          tox -e flake8
 
-      - name: Run pytype
-        run: pytype
+      - name: Run isort
+        if: matrix.toxenv == 'isort'
+        run: |
+          tox -e isort
 
-      - name: Format code with yapf
-        run: yapf -drp comment_parser
+      - name: Run black
+        if: matrix.toxenv == 'black'
+        run: |
+          tox -e black
 
