@@ -1,17 +1,37 @@
-name: Python CI
+name: CI
 
 on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
+  build:
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
-        python-version: [3.8, 3.8]
-    
+        python-version: [3.8, 3.8, 3.8, 3.8, 3.8, 3.9]
+        tox-env: [tests, mypy, apidocs]
+        include:
+          - python-version: 3.8
+            tox-env: tests
+          - python-version: 3.8
+            tox-env: tests
+          - python-version: 3.8
+            tox-env: tests
+          - python-version: 3.8
+            tox-env: tests
+          - python-version: 3.8
+            tox-env: tests
+          - python-version: 3.9
+            tox-env: tests
+          - tox-env: mypy
+          - tox-env: apidocs
+          - tox-env: PUSH_DOCS=true
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -23,11 +43,14 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install tox
+          pip install tox codecov
 
       - name: Run tests
-        env:
-          TOX_ENV: py${{ matrix.python-version }}
         run: |
-          tox -e $TOX_ENV
+          if [[ -n "${{ matrix.tox-env }}" ]]; then
+            tox -e ${{ matrix.tox-env }};
+          fi
+
+      - name: Upload coverage to Codecov
+        run: codecov
 
