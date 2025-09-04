@@ -1,36 +1,50 @@
-name: CI
+name: Python CI
 
-on:
-  push:
-    branches:
-      - main
+on: [push, pull_request]
 
 jobs:
-  flake8:
-    runs-on: ubuntu-22.04
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        python-version: [3.8, 3.8, 3.8, 3.9]
+        os: [ubuntu-latest, ubuntu-22.04, ubuntu-22.04]
+        include:
+          - python-version: 3.8
+            env: TOXENV=py38
+            os: ubuntu-latest
+          - python-version: 3.8
+            env: TOXENV=cov
+            os: ubuntu-latest
+          - python-version: 3.8
+            env: TOXENV=py38
+            os: ubuntu-22.04
+          - python-version: 3.8
+            env: TOXENV=py38
+            os: ubuntu-22.04
+          - python-version: 3.9
+            env: TOXENV=py39
+            os: ubuntu-22.04
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-      
-      - name: Set up Python
+
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
         with:
-          python-version: '3.8'
-      
-      - name: Install Flake8
-        run: pip install flake8
-      
-      - name: Run Flake8
-        run: flake8
+          python-version: ${{ matrix.python-version }}
 
-  hadolint:
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-      
-      - name: Run Hadolint
-        uses: hadolint/hadolint-action@v1
-        with:
-          dockerfile: Dockerfile
+      - name: Install dependencies
+        run: |
+          pip install -U tox coveralls
+
+      - name: Run tests
+        run: |
+          if [ "${{ matrix.env }}" == "TOXENV=cov" ]; then
+            tox
+            coveralls
+          else
+            tox
+          fi
 
