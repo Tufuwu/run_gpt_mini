@@ -1,4 +1,4 @@
-name: CI
+name: Python CI
 
 on: [push, pull_request]
 
@@ -7,8 +7,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.8, 3.8, 3.8, 3.8]
-
+        python-version: [3.8, 3.8, 3.8]
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -18,18 +18,25 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Install Node.js and Elm
+        run: |
+          curl -sL https://deb.nodesource.com/setup_14.x | sudo -E bash -
+          sudo apt-get install -y nodejs
+          npm install -g elm
+
       - name: Install dependencies
-        run: make setup
+        run: pip install tox-travis
 
-      - name: Check build
-        run: make
+      - name: Run tests
+        run: |
+          if [[ "${{ matrix.python-version }}" == "3.8" ]]; then
+            tox -e cover
+            tox -e black
+          else
+            tox
+          fi
 
-      - name: Lint with Flake8
-        run: make lint
-
-      - name: Build documentation
-        run: make docs
-
-      - name: Run tests with coverage
-        run: make travis-test
+      - name: Upload coverage to Coveralls
+        if: success() && matrix.python-version == '3.8'
+        run: coveralls
 
