@@ -4,11 +4,11 @@ on: [push, pull_request]
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
 
     strategy:
       matrix:
-        python-version: [3.8, 3.8, 3.8, 3.8, 3.8]
+        python-version: [3.8, 3.8, 3.8]
 
     steps:
       - name: Checkout code
@@ -20,8 +20,13 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: pip install flask peewee
+        run: |
+          pip install peewee wtforms
 
       - name: Run tests
         run: python runtests.py
+
+      - name: Notify on failure
+        if: failure()
+        run: echo "Tests failed!"
 
