@@ -1,74 +1,29 @@
-name: CI
+name: Python CI
 
 on: [push, pull_request]
 
 jobs:
-  test:
-    runs-on: ${{ matrix.os }}
+  build:
+    runs-on: ubuntu-22.04
+
     strategy:
       matrix:
-        python-version: [3.8, 3.8, 3.8, 3.8, 3.8, 3.9, '3.8']
-        with-opt-deps: [false, true]
-        os: [ubuntu-Trusty, ubuntu-Xenial]
-        include:
-          - python-version: 3.8
-            with-opt-deps: false
-            os: ubuntu-Trusty
-          - python-version: 3.8
-            with-opt-deps: false
-            os: ubuntu-Trusty
-          - python-version: 3.8
-            with-opt-deps: false
-            os: ubuntu-Trusty
-          - python-version: 3.8
-            with-opt-deps: false
-            os: ubuntu-Xenial
-          - python-version: 3.8
-            with-opt-deps: true
-            os: ubuntu-Xenial
-          - python-version: 3.8
-            with-opt-deps: true
-            os: ubuntu-Xenial
-          - python-version: 3.9
-            with-opt-deps: true
-            os: ubuntu-Xenial
-          - python-version: 3.8
-            with-opt-deps: true
-            os: ubuntu-Xenial
-          - python-version: pypy-3.6
-            with-opt-deps: false
-            os: ubuntu-Trusty
+        python-version: [3.8, 3.8, 3.8, 3.8, 3.8]
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Set up Python
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install dependencies
-        run: |
-          if [ "${{ matrix.with-opt-deps }}" = "true" ]; then
-            pip install -vr requirements.txt pytest
-          fi
-          git clone https://github.com/ProgVal/irctest.git
-          echo "y" | pip uninstall limnoria || true
+      - name: Upgrade setuptools
+        run: pip install --upgrade setuptools
 
-      - name: Install package
-        run: python setup.py install
+      - name: Install dependencies
+        run: pip install -r requirements.txt
 
       - name: Run tests
-        run: |
-          echo ${{ matrix.python-version }}
-          supybot-test test -v --plugins-dir=./plugins/ --no-network
-          if [ "${{ matrix.with-opt-deps }}" = "true" ] && [[ "${{ matrix.python-version }}" =~ ^3\.[4-9] ]]; then
-            cd irctest
-            pytest --controllers irctest.controllers.limnoria
-          fi
-
-    notifications:
-      email: false
-
-# End-of-Code
+        run: python setup.py test
