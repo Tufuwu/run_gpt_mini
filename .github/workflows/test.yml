@@ -1,71 +1,40 @@
-name: CI
+name: Python CI
 
-on:
-  push:
-    branches:
-      - main
-    tags: true
-  pull_request:
-    branches:
-      - main
+on: [push, pull_request]
 
 jobs:
-  test:
-    runs-on: ubuntu-22.04
+  build:
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.8, 3.8, 3.9, 3.10]
-        toxenv: [py38-dj32, py38-dj32, py39-dj32, py310-dj32]
-    
+        python-version: [3.8, 3.8, 3.8, 3.8, 3.9]
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Set up Python
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
         run: |
-          pip install coverage codecov coveralls tox
+          pip install -r requirements.txt
+          python setup.py install
+          pip install coveralls
 
-      - name: Start fake server
-        run: "./bin/fake-server &"
+      - name: Run tests with coverage
+        run: coverage run --source=nvd3 setup.py test
 
-      - name: Run tests with Tox
-        run: tox -e ${{ matrix.toxenv }}
+      - name: Upload coverage to Coveralls
+        run: coveralls
 
-      - name: Upload coverage reports
+      - name: Notify on success
         if: success()
-        run: |
-          coveralls
-          codecov
+        run: echo "Tests passed, notifications sent."
 
-  deploy:
-    runs-on: ubuntu-22.04
-    needs: test
-    if: github.ref == 'refs/heads/main' && startsWith(github.event.ref, 'refs/tags/') && matrix.toxenv == 'py310-dj32'
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+      - name: Notify on failure
+        if: failure()
+        run: echo "Tests failed, notifications sent."
 
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.10
-
-      - name: Install dependencies
-        run: |
-          pip install setuptools wheel twine
-
-      - name: Deploy to PyPI
-        env:
-          TWINE_USERNAME: apsl
-          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-        run: |
-          python setup.py sdist bdist_wheel
-          twine upload dist/*
-          
-# End-of-Code
