@@ -1,31 +1,17 @@
-name: Python CI
+name: Generate Settings
 
-on: [push, pull_request]
+on: [push]
 
 jobs:
-  build:
+  generate:
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        python-version: [3.8, 3.8, 3.8, 3.8, 3.8, 3.8, 3.9]
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python-version }}
+      - name: Create settings.py
+        run: echo "from Default.settings import *" > settings.py
 
-      - name: Install dependencies
-        run: |
-          pip install -e .
-
-      - name: Run tests
-        run: |
-          cd tests
-          python test_cvss2.py
-          python test_cvss3.py
-          
+      - name: Run generate script
+        run: python3 generate.py
