@@ -1,4 +1,4 @@
-name: Python Package
+name: Python package
 
 on:
   push:
@@ -6,11 +6,11 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     strategy:
       matrix:
-        python-version: [3.8, 3.8, 3.8, 3.8, 3.8]
+        python-version: [3.8, 3.8, 3.8, 3.8]
 
     steps:
       - name: Checkout code
@@ -21,20 +21,19 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Install OpenJDK 8
+        run: sudo apt-get install -y openjdk-8-jre
+
       - name: Install dependencies
         run: |
-          pip install .
-          pip install coveralls
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-      - name: Run tests with coverage
-        run: coverage run --source=vipaccess setup.py test
-
-      - name: Upload coverage to Coveralls
-        if: success()
-        run: coveralls
+      - name: Run tests
+        run: python setup.py test
 
       - name: Deploy to PyPI
-        if: github.ref_type == 'tag'
+        if: startsWith(github.ref, 'refs/tags/')
         env:
           TWINE_USERNAME: moxfyre
           TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
