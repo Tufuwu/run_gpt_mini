@@ -1,56 +1,56 @@
 name: CI
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
   test:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        python-version: [3.8, 3.8, 3.8, 3.8]
-        django-version: [dj22, dj30, dj31, dj32]
-        include:
+        python-version: [3.8, 3.8, 3.8]
+        packages: 
+          - "django>=1.11,<1.12"
+          - "django>=2.0,<2.1"
+          - "django>=2.1,<2.2"
+          - "django>=2.2,<2.3"
+          - "django>=3.0,<3.1"
+        exclude:
           - python-version: 3.8
-            tox-env: flake8
-          - python-version: 3.8
-            tox-env: isort
-          - python-version: 3.8
-            django-version: dj22
-          - python-version: 3.8
-            django-version: dj22
-          - python-version: 3.8
-            django-version: dj22
-          - python-version: 3.8
-            django-version: dj22
-          - python-version: 3.8
-            django-version: dj30
-          - python-version: 3.8
-            django-version: dj31
-          - python-version: 3.8
-            django-version: dj32
-
+            packages: "django>=2.0,<2.1"
+    
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+    - name: Checkout code
+      uses: actions/checkout@v2
 
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python-version }}
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
 
-      - name: Install dependencies
-        run: |
-          pip install coverage isort tox
-          if [[ "${{ matrix.python-version }}" == "3.8" ]]; then export PY_VER=py38; fi
-          if [[ "${{ matrix.python-version }}" == "3.8" ]]; then export PY_VER=py38; fi
-          if [[ "${{ matrix.python-version }}" == "3.8" ]]; then export PY_VER=py38; fi
-          if [[ "${{ matrix.python-version }}" == "3.8" ]]; then export PY_VER=py38; fi
-          if [[ "${{ matrix.django-version }}" != "" ]]; then export TOX_ENV=$PY_VER; fi
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip wheel setuptools
+        pip install ${{ matrix.packages }} -e .[tests]
+    
+    - name: Install codecov
+      run: pip install codecov
 
-      - name: Run tests
-        run: tox -e $TOX_ENV
+    - name: Run tests
+      run: coverage run --rcfile=.coveragerc runtests.py
 
-      - name: Upload coverage to Codecov
-        if: success()
-        run: bash <(curl -s https://codecov.io/bash)
-        
+    - name: Upload coverage to Codecov
+      run: codecov
+
+    - name: Notify on failure
+      if: failure()
+      run: |
+        echo "Notify failure to IRC, email, and Slack here"
+        # Add your notification commands here
+
+# End-of-Code
