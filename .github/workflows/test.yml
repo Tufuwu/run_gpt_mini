@@ -4,11 +4,11 @@ on: [push, pull_request]
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
-        python-version: [3.8, 3.9, 3.8, 3.8, 3.8]
-    
+        python-version: [3.8, 3.8, 3.8, 3.8]
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -18,17 +18,17 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install dependencies
+      - name: Upgrade pip and setuptools
         run: |
-          pip install -U setuptools tox pip virtualenv
-          pip install -e .
-          pip install pytest-cov codecov -r tests/requirements.txt
+          pip install -U --force setuptools pip
 
-      - name: Run tests with Tox
-        run: tox
-
-      - name: Run coverage and upload to Codecov
+      - name: Install package
         run: |
-          pytest tests/ example/ --cov=./
-          codecov
-          
+          python setup.py develop
+          pip install -e '.[tests]'
+
+      - name: Run pylama
+        run: pylama
+
+      - name: Run tests
+        run: py.test
