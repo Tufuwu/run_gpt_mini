@@ -1,25 +1,14 @@
-name: Python package
+name: CI
 
 on: [push, pull_request]
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    services:
-      mongodb:
-        image: mongo:latest
-        ports:
-          - 27017:27017
-        options: >-
-          --health-cmd "mongo --eval 'db.runCommand({ ping: 1 })'"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+  build:
+    runs-on: ubuntu-22.04
 
     strategy:
       matrix:
-        python-version: [3.8, 3.8, 3.9, pypy-3.6]
-        django-version: ["Django>=2.2,<2.3", "Django>=3.0,<3.2", "Django>=3.2,<3.3"]
+        python-version: [3.8, 3.8, 3.8]
 
     steps:
       - name: Checkout code
@@ -30,14 +19,15 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install Poetry
-        run: pip install poetry
-
-      - name: Install dependencies
+      - name: Install Node.js and JSHint
         run: |
-          poetry install -q
-          poetry run pip install -q ${{ matrix.django-version }}
+          curl -sL https://deb.nodesource.com/setup_14.x | sudo -E bash -
+          sudo apt-get install -y nodejs
+          npm install -g jshint
 
-      - name: Run tests
-        run: poetry run python -m pytest
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run make
+        run: make
 
