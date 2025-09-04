@@ -1,9 +1,15 @@
-name: Python CI
+name: CI
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
-  test:
+  build:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -19,11 +25,22 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: pip install tox-travis
+        run: |
+          make
+          pip install poetry
+          poetry install
 
       - name: Run tests
-        run: tox
+        run: make tests
 
-      - name: Disable email notifications
-        run: echo "Email notifications are disabled."
+      - name: Upload coverage to Codecov
+        run: bash <(curl -s https://codecov.io/bash)
 
+      - name: Notify Gitter
+        if: success() || failure()
+        run: |
+          curl -X POST -H "Content-Type: application/json" \
+          -d '{"text": "Build status: ${{ job.status }}"}' \
+          https://webhooks.gitter.im/e/55cf16b611593edcb09d
+
+# End-of-Code
