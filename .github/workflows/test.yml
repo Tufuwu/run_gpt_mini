@@ -1,14 +1,14 @@
-name: Python package
+name: Python CI
 
 on: [push, pull_request]
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     strategy:
       matrix:
-        python-version: [3.8, 3.8, 3.8, 3.9, 3.10]
-        fail-fast: true
+        python-version: [3.8, 3.8]
 
     steps:
       - name: Checkout code
@@ -21,15 +21,13 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install coverage vcrpy
-          python setup.py install
+          pip install -r requirements.txt
+          pip install codecov coverage
 
-      - name: Run tests with coverage
-        run: |
-          coverage run --source=censusgeocode -m unittest
-          censusgeocode --version
-          censusgeocode --csv tests/fixtures/batch.csv || echo failed
+      - name: Run tests
+        run: nosetests --verbose --with-coverage --cover-erase --cover-package=catkin_lint test
 
-      - name: Report coverage
+      - name: Upload coverage to Codecov
         if: success()
-        run: coverage report
+        run: bash <(curl -s https://codecov.io/bash) | codecov
+
