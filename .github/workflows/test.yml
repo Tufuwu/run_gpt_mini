@@ -1,34 +1,34 @@
-name: Python package
+name: CI
 
 on: [push, pull_request]
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
-
-    strategy:
-      matrix:
-        python-version: [3.8, 3.8, 3.8, 3.8, '3.8']
-        fail-fast: false
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: '3.9'
 
       - name: Install dependencies
         run: |
-          pip install -e .
-          pip install -r tests/requirements.txt
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-      - name: Run tests
-        run: |
-          pytest -vv
-          if [[ "${{ matrix.python-version }}" == "3.8" ]]; then
-            echo "Testing with upcoming Python version."
-          fi
+      - name: Run checks
+        run: make check PIP=pip BUILDBOT=buildbot
 
+      - name: Cache pip
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+            
+# Notifications are not included as GitHub Actions does not have a direct equivalent to Travis CI's email notifications
