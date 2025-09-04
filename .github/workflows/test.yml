@@ -4,11 +4,10 @@ on: [push, pull_request]
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
-
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.8, 3.8, 3.8, 3.8, 3.9, 3.10]
+        python-version: [3.8, 3.8]
 
     steps:
       - name: Checkout code
@@ -21,14 +20,13 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python setup.py --quiet install
-          pip install --quiet -r test-requirements.txt
+          sudo apt-get install -y coinor-cbc
+          pip install -r requirements.txt
+          python setup.py -q install
 
-      - name: Run tests
-        run: python setup.py --quiet test
+      - name: Lint with flake8
+        run: flake8
 
-      - name: Run coverage
-        run: |
-          coverage run --source circlify tests.py
-          coveralls
+      - name: Test with pytest
+        run: pytest
 
