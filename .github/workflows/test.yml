@@ -1,36 +1,40 @@
-name: Python CI
+name: CI
 
 on: [push, pull_request]
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
+
     strategy:
       matrix:
-        python-version: [3.8, 3.8, 3.8, 3.9, 3.8]
-    
+        python-version: [3.8, 3.8, 3.9]
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Set up Python
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install pipenv
-        run: pip install pipenv
-
       - name: Install dependencies
-        run: pipenv install --dev
+        run: |
+          pip install codecov
+          pip install -r requirements.txt
+          pip install -r test-requirements.txt
 
-      - name: Run lint
-        run: pipenv run lint
+      - name: Lint with flake8
+        run: flake8 stockstats.py test.py
 
-      - name: Run tests
-        run: pipenv run test
+      - name: Run tests with coverage
+        run: py.test --cov=./ test.py
 
-      - name: Allow failure for 3.8
-        if: matrix.python-version == '3.8'
-        run: echo "Nightly build is allowed to fail."
+      - name: Upload coverage to Codecov
+        run: bash <(curl -s https://codecov.io/bash)
+
+      - name: Notify via email
+        if: success()
+        run: echo "Build succeeded, sending email to jealous@163.com"
 
