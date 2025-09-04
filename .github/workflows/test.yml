@@ -1,29 +1,38 @@
-name: Python CI
+name: Build Documentation
 
 on: [push, pull_request]
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: [3.8, 3.8, 3.8, 3.8, 3.8, 3.8, 3.9]
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: '3.8'
 
       - name: Install dependencies
-        run: pip install -r .github/requirements.txt
+        run: |
+          pip install doc8 sphinx
+          pip install git+https://github.com/osrf/sphinx-tabs
+          pip install sphinx_multiversion
 
-      - name: Run tests
-        run: make test PYTHON=python
+      - name: Build HTML documentation
+        run: |
+          make html 2> stderr.log
+          cat stderr.log
+          doc8 --ignore D001 --ignore-path build --ignore-path source/Tutorials/Actions
+          doc8 --ignore D000 --ignore D001 --ignore-path build source/Tutorials/Actions
+          if [ -s "stderr.log" ]; then exit 1; fi
 
-# Local Variables:
-# mode: yaml
-# End:
+      - name: Check for errors
+        run: |
+          if [ -s "stderr.log" ]; then
+            echo "Errors found in stderr.log"
+            exit 1
+          fi
+          
