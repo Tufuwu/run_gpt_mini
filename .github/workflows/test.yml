@@ -5,11 +5,10 @@ on: [push, pull_request]
 jobs:
   build:
     runs-on: ubuntu-latest
-
     strategy:
       matrix:
-        python-version: [3.8]
-
+        python-version: [3.8, pypy-3.6, 3.8, 3.8, 3.8, 3.8]
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -20,9 +19,22 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          # Add any other dependencies installation here if needed
+        run: python setup.py --quiet install
 
-      - name: Run validation
-        run: python validate.py
+      - name: Run tests
+        run: |
+          python test_docformatter.py
+          docformatter setup.py
+
+      - name: Coverage
+        if: success()
+        run: |
+          pip install --quiet coverage
+          make coverage
+
+      - name: Upload coverage to Coveralls
+        if: success()
+        run: |
+          pip install --quiet coveralls
+          coveralls
+          
