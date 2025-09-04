@@ -1,28 +1,31 @@
-name: CI
+name: Python CI
 
-on:
-  push:
-    branches:
-      - main
+on: [push, pull_request]
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.8, 3.8]
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Set up Python
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
         with:
-          python-version: '3.8'
+          python-version: ${{ matrix.python-version }}
+
+      - name: Upgrade pip
+        run: pip install --upgrade pip
 
       - name: Install dependencies
-        run: |
-          pip install sphinx${{ secrets.SPHINX_VERSION != '' && format('=={0}', secrets.SPHINX_VERSION) || '' }}
-          pip install -r requirements-travis.txt
+        run: pip install -r requirements.txt
 
-      - name: Run inspekt
-        run: inspekt checkall --disable-style E501,E265,W601,W605,E402,E722,E741 --no-license-check
+      - name: Install package
+        run: python setup.py develop
 
+      - name: Run tests
+        run: nosetests
