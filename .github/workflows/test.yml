@@ -1,55 +1,28 @@
-name: CI
+name: Python CI
 
 on: [push, pull_request]
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.8, 3.8, 3.8, 3.8, 3.8, 3.8, 3.9, pypy, pypy-3.6]
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Set up Python
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
         with:
-          python-version: '3.8' # Change this to '3.8' or '3.8' for different versions
+          python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: |
-          python3 setup.py install
-          sudo apt-get -y update
-          pip install pytest-cov
-          pip install .[ja]
+        run: pip install flake8 pytest
 
       - name: Run tests
-        run: |
-          python3 -m pytest
-          ./test.sh
+        run: python -m pytest -v .
 
-# You can add a matrix strategy to run on multiple Python versions
-# jobs:
-#   build:
-#     runs-on: ubuntu-22.04
-#     strategy:
-#       matrix:
-#         python-version: [3.8, 3.8, 3.8]
-#     steps:
-#       - name: Checkout code
-#         uses: actions/checkout@v2
-#       - name: Set up Python
-#         uses: actions/setup-python@v2
-#         with:
-#           python-version: ${{ matrix.python-version }}
-#       - name: Install dependencies
-#         run: |
-#           python3 setup.py install
-#           sudo apt-get -y update
-#           pip install pytest-cov
-#           pip install .[ja]
-#       - name: Run tests
-#         run: |
-#           python3 -m pytest
-#           ./test.sh
-
-# End-of-Code
+      - name: Run flake8
+        run: flake8
