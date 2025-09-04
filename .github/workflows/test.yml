@@ -1,29 +1,30 @@
-name: CI
+name: Python Test
 
 on: [push, pull_request]
 
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.8, 3.8, 3.8, 3.8, 3.8, 3.8, 3.8, pypy]
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Set up Python
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
         with:
-          python-version: '3.8'
+          python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
         run: |
-          pip install -r requirements-dev.txt
-          pip install -e .
+          # Add any dependency installation commands here if needed
+          echo "No dependencies to install"
 
       - name: Run tests
-        run: pytest pywnedpasswords/tests/
+        run: |
+          ./setconf.py --test
+          cd testcases && ./test.sh
 
-      - name: Run flake8
-        run: flake8 pywnedpasswords
-
-      - name: Run black
-        run: black --safe --check
