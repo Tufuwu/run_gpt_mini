@@ -1,4 +1,4 @@
-name: Python CI
+name: Python Package
 
 on: [push, pull_request]
 
@@ -7,36 +7,22 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.8, 3.8]
-
+        python-version: [3.8, 3.8, 3.8, 3.9]
+        numpy-version: [1.15.4, 1.15.4, 1.15.4, 1.19.4]
+    
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
 
-    - name: Install dependencies
-      run: |
-        pip install -r requirements/tests.txt
-        pip install coveralls
+      - name: Install dependencies
+        run: |
+          pip install numpy==${{ matrix.numpy-version }} scipy matplotlib>=3 cython>=0.28
+          ./dev/build.sh
 
-    - name: Run tests with coverage
-      run: |
-        nosetests --with-coverage --cover-erase --cover-package=temba_client
-
-    - name: Run flake8
-      run: flake8
-
-    - name: Upload coverage to Coveralls
-      run: coveralls
-
-    - name: Notify Slack
-      if: success()
-      env:
-        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-      run: |
-        curl -X POST -H 'Content-type: application/json' --data '{"text":"Build succeeded!"}' $SLACK_WEBHOOK_URL
-
+      - name: Run tests
+        run: ./dev/test.sh
