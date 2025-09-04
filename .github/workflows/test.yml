@@ -4,14 +4,10 @@ on: [push, pull_request]
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
-        python-version: [3.8, 3.8, 3.8, 3.8, '3.8']
-        toxenv: [py38, py38, py38, py38, py38]
-        flake8: [flake8]
-        isort: [isort]
-        black: [black]
+        python-version: [3.8, 3.8, 3.8, 3.9, pypy-3.6]
     
     steps:
       - name: Checkout code
@@ -24,24 +20,26 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install tox
+          pip install -U -r requirements-dev.txt
+          pip install .
 
-      - name: Run Tox
+      - name: Run tests
         run: |
-          tox -e ${{ matrix.toxenv }}
+          if [[ "${{ matrix.python-version }}" == "pypy-3.6" ]]; then
+            TOX_ENV=pypy-3.6
+          else
+            TOX_ENV=py${{ matrix.python-version }} 
+          fi
+          tox -e $TOX_ENV
+          pytest --dead-fixtures
 
-      - name: Run Flake8
-        if: matrix.toxenv == 'flake8'
-        run: |
-          tox -e flake8
-
-      - name: Run isort
-        if: matrix.toxenv == 'isort'
-        run: |
-          tox -e isort
-
-      - name: Run black
-        if: matrix.toxenv == 'black'
-        run: |
-          tox -e black
-
+      - name: Cache pip
+        uses: actions/cache@v2
+        with:
+          path: $HOME/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements-dev.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+          
+      - name: Clean pip cache logs
+        run: rm -rf $HOME/.cache/pip/log
