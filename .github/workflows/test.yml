@@ -1,42 +1,25 @@
-name: Python Package
+name: Python CI
 
-on:
-  push:
-    tags:
-      - '*'
+on: [push, pull_request]
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         python-version: [3.8, 3.8, 3.8]
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
 
-    - name: Install dependencies
-      run: |
-        pip install -r dev-requirements.txt
-        pip install -e .
+      - name: Install dependencies
+        run: pip install -U tox-travis
 
-    - name: Run tests
-      run: pytest --vcr-record=none --cov=tenable tests
-
-    - name: Publish to PyPI
-      if: startsWith(github.ref, 'refs/tags/')
-      env:
-        TWINE_USERNAME: stevemcgrath
-        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-      run: |
-        pip install twine
-        twine upload dist/* --skip-existing
-
-# Note: You need to set the PYPI_PASSWORD secret in your GitHub repository settings.
-
+      - name: Run tests
+        run: tox
