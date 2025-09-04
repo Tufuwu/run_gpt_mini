@@ -4,10 +4,11 @@ on: [push, pull_request]
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        python-version: [3.8, 3.8, 3.8, 3.8]
+        python-version: [3.8, 3.8, 3.8, 3.9, 3.10]
+        os: [ubuntu-latest, ubuntu-22.04]
 
     steps:
       - name: Checkout code
@@ -20,8 +21,18 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements-dev.txt
+          pip install coveralls pytest
+          python setup.py develop
 
-      - name: Run tests
-        run: python test_duo_openvpn.py
+      - name: Run tests with coverage
+        env:
+          WITHOUT_EXTENSION: ${{ matrix.WITHOUT_EXTENSION }}
+        run: |
+          coverage run --source=mwparserfromhell -m pytest
+
+      - name: Upload coverage to Coveralls
+        if: success()
+        run: coveralls
+
+    env:
+      WITHOUT_EXTENSION: ${{ matrix.WITHOUT_EXTENSION }}
