@@ -1,29 +1,36 @@
-name: Python package
+name: CI
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
+      - '!*dependabot*'
+  pull_request:
+    branches:
+      - main
 
 jobs:
   build:
     runs-on: ubuntu-22.04
-
     strategy:
       matrix:
-        python-version: [3.8, 3.9, 3.8, pypy-3.6]
-
+        python-version: [3.8, 3.8, 3.8, 3.8, 3.8, pypy, pypy-3.6]
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
         run: |
-          pip install -U 'setuptools>=18.5' 'pip>=6.0' 'wheel'
-          pip install -e .
+          if [[ "${{ matrix.python-version }}" == "3.8" ]]; then
+            echo "OLD_CRYPTOGRAPHY=3.8.1" >> $GITHUB_ENV
+          fi
+          # Add commands to install dependencies here
 
-      - name: Run tests
-        run: python runtests.py
-
+      - name: Run script
+        run: ci/travis.sh
