@@ -1,4 +1,4 @@
-name: Python CI
+name: Python Package CI
 
 on: [push, pull_request]
 
@@ -20,13 +20,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          sudo apt-get install -y coinor-cbc
-          pip install -r requirements.txt
-          python setup.py -q install
+          CFLAGS="-O0" pip install . --upgrade
 
-      - name: Lint with flake8
-        run: flake8
-
-      - name: Test with pytest
-        run: pytest
-
+      - name: Run tests
+        run: ./runtests.sh
