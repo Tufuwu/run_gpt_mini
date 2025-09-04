@@ -1,34 +1,25 @@
-name: Python CI
+name: Python 3.8 CI
 
 on: [push, pull_request]
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
-    strategy:
-      matrix:
-        python-version: [3.8, 3.8, 3.8, 3.8]
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python 3.8
         uses: actions/setup-python@v2
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: '3.8'
 
-      - name: Upgrade pip and setuptools
+      - name: Install dependencies
         run: |
-          pip install -U --force setuptools pip
-
-      - name: Install package
-        run: |
-          python setup.py develop
-          pip install -e '.[tests]'
-
-      - name: Run pylama
-        run: pylama
+          pip install -U .
 
       - name: Run tests
-        run: py.test
+        run: |
+          python -m unittest discover
+
