@@ -1,32 +1,35 @@
-name: Python CI
+name: CI
 
 on: [push, pull_request]
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     strategy:
       matrix:
-        python-version: [3.8, 3.8, 3.8]
+        python-version: [3.8, 3.8, 3.8, 3.8]
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: |
-          pip install peewee wtforms
+        run: make setup
 
-      - name: Run tests
-        run: python runtests.py
+      - name: Check build
+        run: make
 
-      - name: Notify on failure
-        if: failure()
-        run: echo "Tests failed!"
+      - name: Lint with Flake8
+        run: make lint
+
+      - name: Build documentation
+        run: make docs
+
+      - name: Run tests with coverage
+        run: make travis-test
 
